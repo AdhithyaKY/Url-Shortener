@@ -1,6 +1,6 @@
 const express = require('express')
 const mongoose = require('mongoose')
-const ShortenedUrl = require('./models/shortenedUrl')
+const ShortUrl = require('./models/shortenedUrl')
 const app = express()
 
 mongoose.connect('mongodb://localhost/urlShortener', {
@@ -10,13 +10,13 @@ mongoose.connect('mongodb://localhost/urlShortener', {
 app.set('view engine', 'ejs')
 app.use(express.urlencoded({ extended: false }))
 
-app.get('/', (req,res) => {
-    const shortenedUrls = await ShortenedUrl.find()
-    res.render('index', { shortenedUrls: shortenedURLs })
+app.get('/', async (req,res) => {
+    const shortenedUrls = await ShortUrl.find()
+    res.render('index', { shortenedUrls: shortenedUrls })
 })
 
 app.post('/shortenedURLs', async (req,res) => {
-    await ShortenedUrl.create({ unshortened: req.body.unshortenedURL })
+    await ShortUrl.create({ unshortened: req.body.unshortenedURL })
     res.redirect('/')
 })
 app.listen(process.env.PORT || 5000);

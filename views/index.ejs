@@ -25,13 +25,13 @@
         </tr>
       </thead>
       <tbody>
-          <% shortenedURLs.forEach(shortenedUrl = { %>
-            <tr></tr>
-              <td><a href="<%= shortenedUrl.unshortenedURL %>"><%= shortenedUrl.unshortenedURL %></a></td>
-              <td><a href="<%= shortenedUrl.shortenedURL %>"><%= shortenedUrl.shortenedURL %></a></td>
-              <td><%= shortenedUrl.clicks %></td>
-            </tr>
-          <% }) %>
+        <% shortenedUrls.forEach(shortenedUrl => { %>
+          <tr></tr>
+            <td><a href="<%= shortenedUrl.unshortened %>"><%= shortenedUrl.unshortened %></a></td>
+            <td><a href="<%= shortenedUrl.shortened %>"><%= shortenedUrl.shortened %></a></td>
+            <td><%= shortenedUrl.clicks %></td>
+          </tr>
+        <% }) %>
       </tbody>
     </table>
   </div>
