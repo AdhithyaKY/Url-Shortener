@@ -1,8 +1,25 @@
+if (process.env.NODE_ENV !== 'production') {
+    require('dotenv').config()
+}
+
 const express = require('express')
 const mongoose = require('mongoose')
 const ShortUrl = require('./models/shortenedUrl')
 const app = express()
-const bcrpyt = require('bcrypt')
+const bcrypt = require('bcrypt')
+const passport = require('passport')
+const flash = require('express-flash')
+const session = require('express-session')
+const methodOverride = require('method-override')
+
+
+const initializePassport = require('./passport-config')
+initializePassport(
+    passport, 
+    email  => users.find(user => user.email === email),
+    id => users.find(user => user.id === id)
+)
+
 
 const users = []
 
@@ -12,26 +29,36 @@ mongoose.connect('mongodb://localhost/urlShortener', {
 
 app.set('view engine', 'ejs')
 app.use(express.urlencoded({ extended: false }))
+app.use(flash())
+app.use(session({
+    secret: process.env.SESSION_SECRET,
+    resave: false,
+    saveUninitialized: false
+}))
+app.use(passport.initialize())
+app.use(passport.session())
+app.use(methodOverride('_method'))
 
-app.get('/', (req, res) => {
-    res.render('index.ejs', { name: 'Adhithya' })
+app.get('/', checkAuthenticated, (req, res) => {
+    res.render('index.ejs', { name: req.user.name })
 })
 
-app.get('/login', (req, res) => {
+app.get('/login', checkNotAuthenticated, (req, res) => {
     res.render('login.ejs')
 })
 
-app.post('/login'), (req, res) =>{
-    
-}
+app.post('/login', checkNotAuthenticated, passport.authenticate('local', {
+    successRedirect: '/',
+    failureRedirect: '/login',
+    failureFlash: true
+}))
 
-app.get('/register', (req, res) => {
+app.get('/register', checkNotAuthenticated, (req, res) => {
     res.render('register.ejs')
 })
 
-app.post('/register', async (req, res) => {
+app.post('/register', checkNotAuthenticated, async (req,res) => {
     try {
-        //console.log("hello")
         const hashedPassword = await bcrypt.hash(req.body.password, 10)
         console.log(hashedPassword)
         users.push({
@@ -42,24 +69,23 @@ app.post('/register', async (req, res) => {
         })
         res.redirect('/login')
     } catch {
-        //console.log(users)
         res.redirect('/register')
     }
-    //console.log(users)
+    console.log(users)
     
 })
 
-app.get('/url-shortener', async (req,res) => {
+app.get('/url-shortener', checkAuthenticated, async (req,res) => {
     const shortenedUrls = await ShortUrl.find()
     res.render('urlShortener.ejs', { shortenedUrls: shortenedUrls })
 })
 
-app.post('/shortenedURLs', async (req,res) => {
+app.post('/shortenedURLs', checkAuthenticated, async (req,res) => {
     await ShortUrl.create({ unshortened: req.body.unshortenedURL })
     res.redirect('/url-shortener')
 })
 
-app.get('/:shortenedUrl', async (req, res) => {
+app.get('/:shortenedUrl', checkAuthenticated, async (req, res) => {
     const shortUrl = await ShortUrl.findOne({ shortened: req.params.shortenedUrl }) 
     if (shortUrl == null) return res.sendStatus(404)
     console.log(shortUrl)
@@ -68,5 +94,27 @@ app.get('/:shortenedUrl', async (req, res) => {
 
     res.redirect(shortUrl.unshortened)
 })
+
+app.delete('/logout', (req,res) => {
+    req.logOut()
+    res.redirect('/login')
+})
+
+function checkAuthenticated(req, res, next){
+    if (req.isAuthenticated()){
+        return next()
+    }
+
+    return res.redirect('/login')
+}
+
+function checkNotAuthenticated(req, res, next){
+    if (req.isAuthenticated()) {
+        return res.redirect('/')
+    }else{
+        return next()
+    }
+}
+
 app.listen(process.env.PORT || 5000);
 
